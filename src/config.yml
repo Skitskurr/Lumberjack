@@ -1,0 +1,5 @@
+activeOnJoin: true
+usePermissions: false
+fastLeafDecay: true
+leafDecaySound: true
+leafDecayParticles: true
