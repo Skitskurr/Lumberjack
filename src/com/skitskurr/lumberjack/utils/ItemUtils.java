@@ -26,7 +26,7 @@ public class ItemUtils {
 		final Damageable damageable = (Damageable) meta;
 		final int newDamage = damageable.getDamage() + 1;
 		
-		if(newDamage == item.getType().getMaxDurability()) {
+		if(newDamage >= item.getType().getMaxDurability()) {
 			item.setType(Material.AIR);
 		} else {
 			damageable.setDamage(newDamage);
