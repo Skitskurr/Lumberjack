@@ -2,7 +2,7 @@ main: com.skitskurr.lumberjack.Main
 name: Lumberjack
 version: 1.0
 description: A QoL plugin that makes chopping trees easier.
-api-version: 1.15
+api-version: 1.16
 author: Skitskurr
 
 permissions:
