@@ -1,13 +1,18 @@
 package com.skitskurr.lumberjack;
 
-import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
+import java.util.function.Predicate;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.SoundCategory;
@@ -33,11 +38,14 @@ import org.bukkit.scheduler.BukkitRunnable;
 
 import com.skitskurr.lumberjack.utils.BlockDistanceQueue;
 import com.skitskurr.lumberjack.utils.ItemUtils;
+import com.skitskurr.lumberjack.utils.MaterialTag;
 import com.skitskurr.lumberjack.utils.MetadataUtils;
 
 import net.md_5.bungee.api.ChatColor;
 
 public class EventListener implements Listener{
+	
+	private static final String NAMESPACED_KEY = "skitskurr_lumberjack";
 	
 	private static final String CONFIG_KEY_ACTIVE_ON_JOIN = "activeOnJoin";
 	private static final String CONFIG_KEY_USE_PERMISSIONS = "usePermissions";
@@ -48,12 +56,12 @@ public class EventListener implements Listener{
 	private static final String METADATA_KEY_LUMBER_MODE = "lumberMode";
 	private static final String METADATA_KEY_LUMBER_QUEUE = "lumberQueue";
 	private static final String METADATA_KEY_LEAF_DECAY = "leafDecay";
+	private static final String METADATA_KEY_RECURSION_FLAG = "recursionFlag";
 	
 	private static final String PERMISSION_LUMBERJACK = "skitskurr.lumberjack";
 	
 	private static final BlockFace[] NEIGHBORS = {BlockFace.NORTH, BlockFace.NORTH_EAST, BlockFace.EAST, BlockFace.SOUTH_EAST, BlockFace.SOUTH, BlockFace.SOUTH_WEST, BlockFace.WEST, BlockFace.NORTH_WEST};
 	private static final BlockFace[] LEAF_NEIGHBORS = {BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH, BlockFace.WEST, BlockFace.UP, BlockFace.DOWN};
-	private static final Material[] AXES = {Material.WOODEN_AXE, Material.STONE_AXE, Material.IRON_AXE, Material.GOLDEN_AXE, Material.DIAMOND_AXE};
 	
 	private final Main plugin;
 	
@@ -62,6 +70,12 @@ public class EventListener implements Listener{
 	private final boolean fastLeafDecay;
 	private final boolean leafDecaySound;
 	private final boolean leafDecayParticles;
+	
+	private final MaterialTag tagAxes;
+	private final MaterialTag tagHoes;
+	private final MaterialTag tagWartBlocks;
+	
+	private final Map<Tag<Material>, Tag<Material>> toolList = new HashMap<>();
 	
 	public EventListener(final Main plugin) {
 		this.plugin = plugin;
@@ -72,6 +86,16 @@ public class EventListener implements Listener{
 		this.fastLeafDecay = config.getBoolean(EventListener.CONFIG_KEY_FAST_LEAF_DECAY);
 		this.leafDecaySound = config.getBoolean(EventListener.CONFIG_KEY_LEAF_DECAY_SOUND);
 		this.leafDecayParticles = config.getBoolean(EventListener.CONFIG_KEY_LEAF_DECAY_PARTICLES);
+		
+		final NamespacedKey key = new NamespacedKey(plugin, EventListener.NAMESPACED_KEY);
+		this.tagAxes = new MaterialTag(key, new Material[] {Material.WOODEN_AXE, Material.STONE_AXE,
+				Material.IRON_AXE, Material.GOLDEN_AXE, Material.DIAMOND_AXE, Material.NETHERITE_AXE});
+		this.tagHoes = new MaterialTag(key, new Material[] {Material.WOODEN_HOE, Material.STONE_HOE,
+				Material.IRON_HOE, Material.GOLDEN_HOE, Material.DIAMOND_HOE, Material.NETHERITE_HOE});
+		this.tagWartBlocks = new MaterialTag(key, new Material[] {Material.NETHER_WART_BLOCK, Material.WARPED_WART_BLOCK});
+		
+		toolList.put(Tag.LOGS, this.tagAxes);
+		toolList.put(this.tagWartBlocks, this.tagHoes);
 	}
 	
 	/**
@@ -107,8 +131,16 @@ public class EventListener implements Listener{
 		}
 		
 		final Player player = event.getPlayer();
-		// player is not wielding an axe? -> abort
-		if(!Arrays.stream(EventListener.AXES).anyMatch(player.getInventory().getItemInMainHand().getType()::equals)) {
+		// player is not wielding an appropriate tool? -> abort
+		final Material tool = player.getInventory().getItemInMainHand().getType();
+		boolean toolValid = false;
+		for(final Entry<Tag<Material>, Tag<Material>> entry: toolList.entrySet()) {
+			if(entry.getValue().isTagged(tool)) {
+				toolValid = true;
+				break;
+			}
+		}
+		if(!toolValid) {
 			return;
 		}
 		
@@ -137,21 +169,40 @@ public class EventListener implements Listener{
 	@EventHandler(ignoreCancelled = true, priority = EventPriority.HIGH)
 	public void onBreak(final BlockBreakEvent event) {
 		final Block block = event.getBlock();
+		final Optional<Boolean> recursionFlag = MetadataUtils.getMetadata(this.plugin, block, EventListener.METADATA_KEY_RECURSION_FLAG, Boolean.class);
+		if(recursionFlag.isPresent() && recursionFlag.get()) {
+			return;
+		}
+		
 		final Material mat = block.getType();
 		
+		//do leaf decay
 		if(Tag.LOGS.isTagged(mat) || Tag.LEAVES.isTagged(mat)) {
 			decaySurroundingLeaves(block);
 		}
 		
-		// if no log was broken we can stop here
-		if(!Tag.LOGS.isTagged(mat)) {
+		Tag<Material> type = null;
+		Tag<Material> tool = null;
+		for(final Entry<Tag<Material>, Tag<Material>> entry: toolList.entrySet()) {
+			if(entry.getKey().isTagged(mat)) {
+				type = entry.getKey();
+				tool = entry.getValue();
+				break;
+			}
+		}
+		
+		// if no appropriate block was broken we can stop here
+		if(type == null || tool == null) {
 			return;
 		}
+		
+		// appearently needs to be final for lambda reference
+		final Tag<Material> finalType = type;
 		
 		final Player player = event.getPlayer();
 		final ItemStack mainHand = player.getInventory().getItemInMainHand();
 		// lumberjack only works with axes
-		if(!Arrays.stream(EventListener.AXES).anyMatch(mainHand.getType()::equals)) {
+		if(!tool.isTagged(mainHand.getType())) {
 			return;
 		}
 		
@@ -172,7 +223,7 @@ public class EventListener implements Listener{
 		}
 		
 		final Optional<BlockDistanceQueue> optionalQueue = MetadataUtils.getMetadata(plugin, block, EventListener.METADATA_KEY_LUMBER_QUEUE, BlockDistanceQueue.class);
-		final BlockDistanceQueue queue = optionalQueue.orElseGet(() -> loadLumberQueue(block));
+		final BlockDistanceQueue queue = optionalQueue.orElseGet(() -> loadLumberQueue(block, finalType::isTagged));
 		
 		// if the block is the last one the queue has to be removed again, 
 		// otherwise it will interfere with a new tree growing at the same location
@@ -185,13 +236,21 @@ public class EventListener implements Listener{
 		do {
 			furthest = queue.poll();
 			// queue cannot be empty here, because we have at least the broken log left
-		} while(!Tag.LOGS.isTagged(furthest.getType()));
+		} while(!type.isTagged(furthest.getType()));
 
+		// call a BlockBreakEvent on the furthest block so this plugin will not bypass protection plugins
+		furthest.setMetadata(EventListener.METADATA_KEY_RECURSION_FLAG, new FixedMetadataValue(this.plugin, true));
+		final BlockBreakEvent furthestEvent = new BlockBreakEvent(furthest, player);
+		Bukkit.getPluginManager().callEvent(furthestEvent);
+		if(furthestEvent.isCancelled()) {
+			return;
+		}
+		furthest.removeMetadata(EventListener.METADATA_KEY_RECURSION_FLAG, this.plugin);
+		
 		final Location loc = event.getPlayer().getLocation();
 		loc.getWorld().dropItemNaturally(loc, new ItemStack(furthest.getType()));
 		furthest.setType(Material.AIR);
 		furthest.removeMetadata(EventListener.METADATA_KEY_LUMBER_QUEUE, plugin);
-		decaySurroundingLeaves(furthest);
 		event.setCancelled(true);
 		ItemUtils.reduceDurability(mainHand);
 		player.getInventory().setItemInMainHand(mainHand);
@@ -218,12 +277,13 @@ public class EventListener implements Listener{
 	/**
 	 * generates the LumberQueue for the broken block
 	 * @param block the block that was broken
+	 * @param predicate a predicate to check if a material is applicable
 	 * @return a queue of connected logs
 	 */
-	private BlockDistanceQueue loadLumberQueue(final Block block) {
+	private BlockDistanceQueue loadLumberQueue(final Block block, final Predicate<Material> predicate) {
 		final BlockDistanceQueue queue = new BlockDistanceQueue();
 		final Set<Block> checkedBlocks = new HashSet<>();
-		checkBlock(block, block, queue, checkedBlocks);
+		checkBlock(block, block, queue, checkedBlocks, predicate);
 		block.setMetadata(EventListener.METADATA_KEY_LUMBER_QUEUE, new FixedMetadataValue(this.plugin, queue));
 		return queue;
 	}
@@ -234,15 +294,16 @@ public class EventListener implements Listener{
 	 * @param check the block to check
 	 * @param queue the queue to add the block to, if applicable
 	 * @param checkedBlocks a set of blocks already checked, to prevent circulation
+	 * @param predicate a predicate to check if a material is applicable
 	 */
-	private void checkBlock(final Block source, final Block check, final BlockDistanceQueue queue, final Set<Block> checkedBlocks) {
+	private void checkBlock(final Block source, final Block check, final BlockDistanceQueue queue, final Set<Block> checkedBlocks, final Predicate<Material> predicate) {
+		// if the block was already checked we abort to prevent circulation
 		if(checkedBlocks.contains(check)) {
-			// if the block was already checked we abort to prevent circulation
 			return;
 		}
 		
 		// if the block is not a log its not added to the queue
-		if(!Tag.LOGS.isTagged(check.getType())) {
+		if(!predicate.test(check.getType())) {
 			return;
 		}
 		
@@ -257,25 +318,25 @@ public class EventListener implements Listener{
 		queue.add(check, distance);
 		
 		final Block upper = check.getRelative(BlockFace.UP);
-		checkBlock(source, upper, queue, checkedBlocks);
+		checkBlock(source, upper, queue, checkedBlocks, predicate);
 		if(!checkedBlocks.contains(upper)) {
 			for(final BlockFace direction: EventListener.NEIGHBORS) {
 				final Block neighbor = upper.getRelative(direction);
-				checkBlock(source, neighbor, queue, checkedBlocks);
+				checkBlock(source, neighbor, queue, checkedBlocks, predicate);
 			}
 		}
 		
 		for(final BlockFace direction: EventListener.NEIGHBORS) {
 			final Block neighbor = check.getRelative(direction);
-			checkBlock(source, neighbor, queue, checkedBlocks);
+			checkBlock(source, neighbor, queue, checkedBlocks, predicate);
 		}
 		
 		final Block lower = check.getRelative(BlockFace.DOWN);
-		checkBlock(source, lower, queue, checkedBlocks);
+		checkBlock(source, lower, queue, checkedBlocks, predicate);
 		if(!checkedBlocks.contains(lower)) {
 			for(final BlockFace diretion: EventListener.NEIGHBORS) {
 				final Block neighbor = lower.getRelative(diretion);
-				checkBlock(source, neighbor, queue, checkedBlocks);
+				checkBlock(source, neighbor, queue, checkedBlocks, predicate);
 			}
 		}
 	}
