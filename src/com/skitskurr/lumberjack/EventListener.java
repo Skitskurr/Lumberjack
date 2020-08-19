@@ -71,9 +71,6 @@ public class EventListener implements Listener{
 	private final boolean leafDecaySound;
 	private final boolean leafDecayParticles;
 	
-	private final MaterialTag tagAxes;
-	private final MaterialTag tagHoes;
-	private final MaterialTag tagWartBlocks;
 	
 	private final Map<Tag<Material>, Tag<Material>> toolList = new HashMap<>();
 	
@@ -88,14 +85,16 @@ public class EventListener implements Listener{
 		this.leafDecayParticles = config.getBoolean(EventListener.CONFIG_KEY_LEAF_DECAY_PARTICLES);
 		
 		final NamespacedKey key = new NamespacedKey(plugin, EventListener.NAMESPACED_KEY);
-		this.tagAxes = new MaterialTag(key, new Material[] {Material.WOODEN_AXE, Material.STONE_AXE,
+		final MaterialTag tagAxes = new MaterialTag(key, new Material[] {Material.WOODEN_AXE, Material.STONE_AXE,
 				Material.IRON_AXE, Material.GOLDEN_AXE, Material.DIAMOND_AXE, Material.NETHERITE_AXE});
-		this.tagHoes = new MaterialTag(key, new Material[] {Material.WOODEN_HOE, Material.STONE_HOE,
+		final MaterialTag tagHoes = new MaterialTag(key, new Material[] {Material.WOODEN_HOE, Material.STONE_HOE,
 				Material.IRON_HOE, Material.GOLDEN_HOE, Material.DIAMOND_HOE, Material.NETHERITE_HOE});
-		this.tagWartBlocks = new MaterialTag(key, new Material[] {Material.NETHER_WART_BLOCK, Material.WARPED_WART_BLOCK});
+		final MaterialTag tagWartBlocks = new MaterialTag(key, new Material[] {Material.NETHER_WART_BLOCK, Material.WARPED_WART_BLOCK});
+		final MaterialTag tagShears = new MaterialTag(key, new Material[] {Material.SHEARS});
 		
-		toolList.put(Tag.LOGS, this.tagAxes);
-		toolList.put(this.tagWartBlocks, this.tagHoes);
+		toolList.put(Tag.LOGS, tagAxes);
+		toolList.put(tagWartBlocks, tagHoes);
+		toolList.put(Tag.LEAVES, tagShears);
 	}
 	
 	/**

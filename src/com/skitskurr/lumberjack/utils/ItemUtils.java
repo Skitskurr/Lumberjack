@@ -19,7 +19,7 @@ public class ItemUtils {
 		}
 		
 		// simulate unbreaking enchantment
-		if(random.nextInt(meta.getEnchantLevel(Enchantment.DURABILITY) + 1) != 0) {
+		if(ItemUtils.random.nextInt(meta.getEnchantLevel(Enchantment.DURABILITY) + 1) != 0) {
 			return;
 		}
 		
