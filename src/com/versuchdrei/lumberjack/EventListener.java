@@ -45,7 +45,7 @@ import net.md_5.bungee.api.ChatColor;
 
 /**
  * the event listener of the Lumberjack plugin, 
- * handles certain player actions and informs their current menu
+ * handles tree/leave breaking and applies the lumberjack mechanic
  * @author VersuchDrei
  * @version 1.0
  */
