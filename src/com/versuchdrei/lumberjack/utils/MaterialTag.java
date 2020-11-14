@@ -1,4 +1,4 @@
-package com.skitskurr.lumberjack.utils;
+package com.versuchdrei.lumberjack.utils;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -7,6 +7,11 @@ import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Tag;
 
+/**
+ * a tag implementation for materials
+ * @author VersuchDrei
+ * @version 1.0
+ */
 public class MaterialTag implements Tag<Material>{
 	
 	private final NamespacedKey key;

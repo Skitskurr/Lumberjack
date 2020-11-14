@@ -1,4 +1,4 @@
-package com.skitskurr.lumberjack;
+package com.versuchdrei.lumberjack;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -36,13 +36,19 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.scheduler.BukkitRunnable;
 
-import com.skitskurr.lumberjack.utils.BlockDistanceQueue;
-import com.skitskurr.lumberjack.utils.ItemUtils;
-import com.skitskurr.lumberjack.utils.MaterialTag;
-import com.skitskurr.lumberjack.utils.MetadataUtils;
+import com.versuchdrei.lumberjack.utils.BlockDistanceQueue;
+import com.versuchdrei.lumberjack.utils.ItemUtils;
+import com.versuchdrei.lumberjack.utils.MaterialTag;
+import com.versuchdrei.lumberjack.utils.MetadataUtils;
 
 import net.md_5.bungee.api.ChatColor;
 
+/**
+ * the event listener of the Lumberjack plugin, 
+ * handles certain player actions and informs their current menu
+ * @author VersuchDrei
+ * @version 1.0
+ */
 public class EventListener implements Listener{
 	
 	private static final String NAMESPACED_KEY = "skitskurr_lumberjack";

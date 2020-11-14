@@ -1,7 +1,12 @@
-package com.skitskurr.lumberjack.utils;
+package com.versuchdrei.lumberjack.utils;
 
 import org.bukkit.block.Block;
 
+/**
+ * a priority queue for blocks based on their distance to the source block
+ * @author VersuchDrei
+ * @version 1.0
+ */
 public class BlockDistanceQueue {
 	
 	private class Knot{

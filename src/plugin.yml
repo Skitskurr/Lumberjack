@@ -1,11 +1,11 @@
-main: com.skitskurr.lumberjack.Main
+main: com.versuchdrei.lumberjack.Main
 name: Lumberjack
 version: 1.0
 description: A QoL plugin that makes chopping trees easier.
 api-version: 1.16
-author: Skitskurr
+author: VersuchDrei
 
 permissions:
-  skitskurr.lumberjack:
+  versuchdrei.lumberjack:
     description: Allows players to use the lumberjack function. Only required if usePermissions in the config is set to true.
     default: false

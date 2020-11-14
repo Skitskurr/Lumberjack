@@ -1,4 +1,4 @@
-package com.skitskurr.lumberjack.utils;
+package com.versuchdrei.lumberjack.utils;
 
 import java.util.Random;
 
@@ -8,6 +8,11 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
 
+/**
+ * a util class for reusable itemstack regarding methods
+ * @author VersuchDrei
+ * @version 1.0
+ */
 public class ItemUtils {
 	
 	private static Random random = new Random();
