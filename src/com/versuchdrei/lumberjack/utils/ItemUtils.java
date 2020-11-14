@@ -9,7 +9,7 @@ import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
 
 /**
- * a util class for reusable itemstack regarding methods
+ * a util class for methods regarding itemstacks
  * @author VersuchDrei
  * @version 1.0
  */

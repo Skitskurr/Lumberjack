@@ -8,7 +8,7 @@ import org.bukkit.metadata.Metadatable;
 import org.bukkit.plugin.java.JavaPlugin;
 
 /**
- * a util class for metadata regarding methods 
+ * a util class for methods regarding metadata
  * @author VersuchDrei
  * @version 1.0
  */
