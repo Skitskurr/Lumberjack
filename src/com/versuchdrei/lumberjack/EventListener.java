@@ -136,6 +136,11 @@ public class EventListener implements Listener{
 		}
 		
 		final Player player = event.getPlayer();
+		// when offhand is not empty we abort to prevent weird interactions with items like shields for example
+		if(player.getInventory().getItemInOffHand().getType() == Material.AIR) {
+			return;
+		}
+		
 		// player is not wielding an appropriate tool? -> abort
 		final Material tool = player.getInventory().getItemInMainHand().getType();
 		boolean toolValid = false;
@@ -208,6 +213,7 @@ public class EventListener implements Listener{
 		final ItemStack mainHand = player.getInventory().getItemInMainHand();
 		// lumberjack only works with axes
 		if(!tool.isTagged(mainHand.getType())) {
+			block.removeMetadata(EventListener.METADATA_KEY_LUMBER_QUEUE, this.plugin);
 			return;
 		}
 		
@@ -227,7 +233,7 @@ public class EventListener implements Listener{
 			return;
 		}
 		
-		final Optional<BlockDistanceQueue> optionalQueue = MetadataUtils.getMetadata(plugin, block, EventListener.METADATA_KEY_LUMBER_QUEUE, BlockDistanceQueue.class);
+		final Optional<BlockDistanceQueue> optionalQueue = MetadataUtils.getMetadata(this.plugin, block, EventListener.METADATA_KEY_LUMBER_QUEUE, BlockDistanceQueue.class);
 		final BlockDistanceQueue queue = optionalQueue.orElseGet(() -> loadLumberQueue(block, finalType::isTagged));
 		
 		// if the block is the last one the queue has to be removed again, 
@@ -255,7 +261,7 @@ public class EventListener implements Listener{
 		final Location loc = event.getPlayer().getLocation();
 		loc.getWorld().dropItemNaturally(loc, new ItemStack(furthest.getType()));
 		furthest.setType(Material.AIR);
-		furthest.removeMetadata(EventListener.METADATA_KEY_LUMBER_QUEUE, plugin);
+		furthest.removeMetadata(EventListener.METADATA_KEY_LUMBER_QUEUE, this.plugin);
 		event.setCancelled(true);
 		ItemUtils.reduceDurability(mainHand);
 		player.getInventory().setItemInMainHand(mainHand);
